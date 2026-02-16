@@ -55,10 +55,9 @@
             min-height: 100vh;
             margin: 0;
             font-size: 14px;
-            overflow-x: hidden; /* Evita scroll lateral se o blur expandir */
+            overflow-x: hidden;
         }
 
-        /* Container Principal do One Pager */
         #a4-page {
             width: 794px;
             height: 1123px;
@@ -71,11 +70,9 @@
             display: flex;
             flex-direction: column;
             padding: 40px 50px;
-            /* Transição suave para retirar o blur */
             transition: filter 0.8s ease;
         }
 
-        /* CLASSE DE BLOQUEIO (BLUR) */
         .content-locked {
             filter: blur(15px);
             pointer-events: none;
@@ -90,8 +87,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: rgba(0, 0, 0, 0.6); /* Fundo escuro semi-transparente */
-            backdrop-filter: blur(5px); /* Desfoque extra no fundo do modal */
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
             opacity: 1;
             transition: opacity 0.5s ease;
         }
@@ -137,7 +134,6 @@
             transform: scale(1.02);
         }
 
-        /* Overlay para escurecer o fundo do A4 */
         .bg-overlay {
             position: absolute;
             inset: 0;
@@ -166,10 +162,9 @@
                 linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
             background-size: 40px 40px;
             pointer-events: none;
-            z-index: 1; 
+            z-index: 1;
         }
 
-        /* --- DIAGRAMA CSS (ONTOLOGIA) --- */
         .rule-box {
             background: rgba(255, 137, 255, 0.1);
             border: 1px dashed #FF89FF;
@@ -182,7 +177,6 @@
             display: flex; align-items: center; gap: 6px;
         }
 
-        /* --- DIAGRAMA CSS (GLASS BOX) --- */
         .log-line {
             display: flex; gap: 8px; margin-bottom: 6px; align-items: center;
             opacity: 0; animation: fadeIn 0.5s forwards;
@@ -193,7 +187,6 @@
         
         @keyframes fadeIn { to { opacity: 1; } }
 
-        /* Botão WhatsApp */
         .btn-whatsapp {
             background: #25D366;
             color: white;
@@ -222,24 +215,24 @@
     <div id="gate-overlay">
         <div class="gate-card">
             <div class="mb-4 text-brand-blue">
-                <!-- Ícone mais amigável (Brilho/Magic) ao invés de Cadeado -->
                 <span class="material-symbols-outlined text-4xl">auto_awesome</span>
             </div>
-            <!-- Texto mais leve e convidativo -->
             <h2 class="text-white text-xl font-bold mb-2 font-display">Acesse o Material</h2>
             <p class="text-slate-400 text-sm mb-6 font-light">Compartilhe seu e-mail para visualizar o infográfico completo sobre a nova era da Governança com IA.</p>
             
             <!-- FORMULÁRIO GOOGLE (INTEGRADO) -->
-            <!-- ID do Form: 1FAIpQLSfp8vWbI7pKWq42PM_BQK6nehnKXshWAhPXPstGAmVVIDYorQ -->
-            <!-- Entry ID do E-mail: entry.1802490732 -->
+            <!-- 
+                Ação: Envia para o Google Forms
+                Target: Envia para o iframe invisível abaixo (evita refresh da página)
+                OnSubmit: Chama a função unlockContent()
+            -->
             <form id="unlock-form" 
                   action="https://docs.google.com/forms/d/e/1FAIpQLSfp8vWbI7pKWq42PM_BQK6nehnKXshWAhPXPstGAmVVIDYorQ/formResponse" 
                   method="POST" 
                   target="hidden_iframe"
-                  onsubmit="unlockContent()">
+                  onsubmit="submitted=true; unlockContent();">
                 
                 <input type="email" name="entry.1802490732" class="gate-input" placeholder="Digite seu melhor e-mail" required>
-                <!-- Botão com CTA positivo -->
                 <button type="submit" class="gate-btn">Visualizar Agora</button>
             </form>
             
@@ -248,14 +241,13 @@
     </div>
 
     <!-- Iframe invisível para capturar o submit sem recarregar a página -->
-    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
+    <!-- onload: Se o formulário carregar aqui, desbloqueia a tela -->
+    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;" onload="if(submitted) { unlockContent(); }"></iframe>
 
-    <!-- CONTEÚDO PRINCIPAL (Inicialmente com Blur via classe 'content-locked') -->
+    <!-- CONTEÚDO PRINCIPAL (Inicialmente com Blur) -->
     <div id="main-content-wrapper" class="content-locked">
         <div id="a4-page">
-            <!-- Overlay Escuro -->
             <div class="bg-overlay"></div>
-            <!-- Grid -->
             <div class="tech-grid"></div>
 
             <!-- HEADER -->
@@ -441,32 +433,52 @@
     </div>
 
     <script>
-        // Função para desbloquear o conteúdo
-        function unlockContent() {
-            // O formulário envia para o iframe, então não recarrega a página.
-            // Precisamos apenas remover o blur e esconder o overlay.
-            
-            // Pequeno delay para simular processamento e dar feedback visual
-            const btn = document.querySelector('.gate-btn');
-            btn.innerText = "Carregando..."; // Texto de feedback mais neutro
-            
-            setTimeout(() => {
-                const overlay = document.getElementById('gate-overlay');
-                const content = document.getElementById('main-content-wrapper');
-                
-                // Fade out overlay
-                overlay.style.opacity = '0';
-                setTimeout(() => {
-                    overlay.style.display = 'none';
-                }, 500);
+        // Variável para controlar se o form foi enviado
+        var submitted = false;
 
-                // Remove blur
-                content.classList.remove('content-locked');
-            }, 800);
-            
-            // Retorna true para permitir o envio do form ao Google
+        // Função de desbloqueio segura
+        function unlockContent() {
+            const btn = document.querySelector('.gate-btn');
+            const overlay = document.getElementById('gate-overlay');
+            const content = document.getElementById('main-content-wrapper');
+
+            // 1. Feedback visual no botão
+            if (btn) btn.innerText = "Carregando...";
+
+            // 2. Agendar remoção do overlay (garantia de execução)
+            setTimeout(() => {
+                if (overlay) {
+                    overlay.style.transition = 'opacity 0.8s ease';
+                    overlay.style.opacity = '0';
+                    
+                    // Remove do DOM após o fade
+                    setTimeout(() => {
+                        overlay.style.display = 'none';
+                    }, 800);
+                }
+
+                if (content) {
+                    content.classList.remove('content-locked');
+                }
+            }, 1000); // Aguarda 1 segundo para garantir o envio do form
+
             return true;
         }
 
         // Ajuste de zoom automático para visualização na tela
-// ... existing code ... -->
+        function fitToScreen() {
+            const page = document.getElementById('a4-page');
+            const windowH = window.innerHeight;
+            if (windowH < 1150) {
+                const scale = (windowH - 40) / 1123;
+                page.style.transform = `scale(${scale})`;
+                page.style.transformOrigin = 'top center';
+                page.style.marginBottom = `-${1123 * (1 - scale)}px`;
+            }
+        }
+        
+        window.addEventListener('resize', fitToScreen);
+        fitToScreen();
+    </script>
+</body>
+</html>
